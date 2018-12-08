@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="approvalApp">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="../../favicon.ico">
+  <title>Scalr Demo Approval</title>
+  <link href="static/css/bootstrap.min.css" rel="stylesheet">
+  <link href="static/css/jumbotron-narrow.css" rel="stylesheet">
+  <script src="static/js/angular.js"></script>
+  <script src="https://js.pusher.com/4.3/pusher.min.js"></script>
+  <script>
+    angular.module("approvalApp", [])
+	  .controller('HomeCtrl', function($scope, $http) {
+				$scope.info = {};
+        Pusher.logToConsole = true;
+
+        var pusher = new Pusher('856b809ff692f1e2cb11', {
+          cluster: 'mt1',
+          forceTLS: true
+        });
+
+        var channel = pusher.subscribe('live-approve');
+        channel.bind('redis-update', function() {
+          $scope.showlist();
+        });
+        
+				$scope.showpending = function(){
+					$http({
+							method: 'GET',
+							url: '/getPending',
+
+					}).then(function(response) {
+							$scope.pending = response.data;
+							console.log('mm', $scope.pending);
+					}, function(error) {
+							console.log(error);
+					});
+				}
+	  			
+	  		$scope.showapproved = function(){
+					$http({
+							method: 'GET',
+							url: '/getApproved',
+
+					}).then(function(response) {
+							$scope.approved = response.data;
+							console.log('mm', $scope.approved);
+					}, function(error) {
+							console.log(error);
+					});
+				}
+
+        $scope.showdenied = function(){
+          $http({
+              method: 'GET',
+              url: '/getDenied',
+
+          }).then(function(response) {
+              $scope.denied = response.data;
+              console.log('mm', $scope.denied);
+          }, function(error) {
+              console.log(error);
+          });
+                } 
+
+				$scope.showlist = function(){
+					$scope.showpending();
+					$scope.showapproved();
+					$scope.showdenied();
+				}
+
+        $scope.approvePopup = function(requestId){
+          $scope.approveRequestId = requestId
+          $('#approveRequest').modal('show');
+        }
+
+	    	$scope.approve = function() {
+    			$http({
+							method: 'POST',
+							url: '/approveRequest',
+							data: {requestId:$scope.approveRequestId, message:$scope.info.message}
+					}).then(function(response) {
+              $('#approveRequest').modal('hide');
+							$scope.showlist();
+							$scope.info = {}
+				   	}, function(error) {
+							console.log(error);
+					});
+				}
+
+        $scope.denyPopup = function(requestId){
+          $scope.denyRequestId = requestId
+          $('#denyRequest').modal('show');
+        }
+
+	    	$scope.deny = function() {
+    			$http({
+							method: 'POST',
+							url: '/denyRequest',
+							data: {requestId:$scope.denyRequestId, message:$scope.info.message}
+					}).then(function(response) {
+              $('#denyRequest').modal('hide');
+							$scope.showlist();
+							$scope.info = {}
+				   	}, function(error) {
+							console.log(error);
+					});
+				}        
+
+				$scope.showlist();
+		})
+  </script>
+					  	
+</head>
+<body ng-controller="HomeCtrl">
+  <div class="container">
+    <div class="header clearfix">
+      <nav>
+        <ul class="nav nav-pills pull-right">
+        </ul>
+      </nav>
+      <h3 class="text-muted">Application Deployment Approval</h3>
+    </div>
+
+
+    <div class="bs-example" data-example-id="panel-without-body-with-table">
+      <div class="panel panel-default">
+        <div class="panel-heading">Pending Requests</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Requesting User</th>
+              <th>Farm Name</th>
+              <th>Business Unit</th>
+              <th>Cost Center</th>
+              <th>Project</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in pending track by $index">
+              <th scope="row">{{'{{item.requestId}}'}}</th>
+			        <td>{{ '{{item.user}}' }}</td>
+			        <td>{{ '{{item.scalrFarm}}' }}</td>
+			        <td>{{ '{{item.businessUnit}}' }}</td>
+			        <td>{{ '{{item.costCenter}}' }}</td>
+              <td>{{ '{{item.project}}' }}</td>
+              <td></td>
+              <td><span style="cursor:pointer;color:#e43309;" ng-click="denyPopup(item.requestId)" class="glyphicon glyphicon-remove" aria-hidden="true"></span></td>
+              <td><span style="cursor:pointer;color:#3c763d;" ng-click="approvePopup(item.requestId)" class="glyphicon glyphicon-ok" aria-hidden="true"></span></td>              
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <div class="bs-example" data-example-id="panel-without-body-with-table">
+      <div class="panel panel-default">
+        <div class="panel-heading">Approved Requests</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Requesting User</th>
+              <th>Farm Name</th>
+              <th>Business Unit</th>
+              <th>Cost Center</th>
+              <th>Project</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in approved track by $index">
+              <th scope="row">{{'{{item.requestId}}'}}</th>
+			        <td>{{ '{{item.user}}' }}</td>
+			        <td>{{ '{{item.scalrFarm}}' }}</td>
+			        <td>{{ '{{item.businessUnit}}' }}</td>
+			        <td>{{ '{{item.costCenter}}' }}</td>
+			        <td>{{ '{{item.project}}' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bs-example" data-example-id="panel-without-body-with-table">
+      <div class="panel panel-default">
+        <div class="panel-heading">Denied Requests</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Requesting User</th>
+              <th>Farm Name</th>
+              <th>Business Unit</th>
+              <th>Cost Center</th>
+              <th>Project</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in denied track by $index">
+              <th scope="row">{{'{{item.requestId}}'}}</th>
+              <td>{{ '{{item.user}}' }}</td>
+              <td>{{ '{{item.scalrFarm}}' }}</td>
+              <td>{{ '{{item.businessUnit}}' }}</td>
+              <td>{{ '{{item.costCenter}}' }}</td>
+              <td>{{ '{{item.project}}' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>    
+</div>
+
+  <div class="modal fade" id="approveRequest" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="exampleModalLabel" >Confirm Request Approval</h4>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="txtMessage" class="control-label">Approval Message:</label>
+                        <textarea class="form-control" ng-model="info.message" id="txtMessage" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button"  class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="btnAdd" ng-click="approve()" type="button" class="btn btn-primary">Approve</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="denyRequest" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="exampleModalLabel" >Confirm Request Denial</h4>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="txtMessage" class="control-label">Denial Message:</label>
+                        <textarea class="form-control" ng-model="info.message" id="txtMessage" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button"  class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="btnAdd" ng-click="deny()" type="button" class="btn btn-primary">Deny</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <script src="static/js/jquery.min.js"></script>
+  <script src="static/js/bootstrap.min.js"></script>
+</body>
+</html>
+
