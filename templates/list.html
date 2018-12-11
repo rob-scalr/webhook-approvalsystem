@@ -10,16 +10,23 @@
   <title>Scalr Demo Approval</title>
   <link href="static/css/bootstrap.min.css" rel="stylesheet">
   <link href="static/css/jumbotron-narrow.css" rel="stylesheet">
-  <script src="static/js/angular.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-animate.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-aria.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-messages.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>  
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>  
   <script src="https://js.pusher.com/4.3/pusher.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.8/angular-material.min.js"></script>  
   <script>
-    angular.module("approvalApp", [])
+    angular.module("approvalApp", ['ngMaterial'])
 	  .controller('HomeCtrl', function($scope, $http) {
 				$scope.info = {};
+        $scope.limit = 7;
         Pusher.logToConsole = true;
 
-        var pusher = new Pusher('856b809ff692f1e2cb11', {
-          cluster: 'mt1',
+		var pusher = new Pusher('<PUSHER_SECRET>', {
+          cluster: '<PUSHER_CLUSTER>',
           forceTLS: true
         });
 
@@ -27,6 +34,16 @@
         channel.bind('redis-update', function() {
           $scope.showlist();
         });
+
+        $scope.hoverIn = function(requestId, element){
+          $scope.approveRequestId = requestId
+          $('#showMessage').modal('show');
+        };
+
+        $scope.hoverOut = function(requestId){
+          $scope.approveRequestId = requestId
+          $('#showMessage').modal('hide');
+        };        
         
 				$scope.showpending = function(){
 					$http({
@@ -35,6 +52,9 @@
 
 					}).then(function(response) {
 							$scope.pending = response.data;
+              $scope.pending.sort(function(a,b) {
+                return a['timestamp']-b['timestamp'];
+              });
 							console.log('mm', $scope.pending);
 					}, function(error) {
 							console.log(error);
@@ -48,6 +68,9 @@
 
 					}).then(function(response) {
 							$scope.approved = response.data;
+              $scope.approved.sort(function(a,b) {
+              return b['timestamp']-a['timestamp'];
+              });              
 							console.log('mm', $scope.approved);
 					}, function(error) {
 							console.log(error);
@@ -61,6 +84,9 @@
 
           }).then(function(response) {
               $scope.denied = response.data;
+              $scope.denied.sort(function(a,b) {
+              return b['timestamp']-a['timestamp'];
+              });              
               console.log('mm', $scope.denied);
           }, function(error) {
               console.log(error);
@@ -85,7 +111,6 @@
 							data: {requestId:$scope.approveRequestId, message:$scope.info.message}
 					}).then(function(response) {
               $('#approveRequest').modal('hide');
-							$scope.showlist();
 							$scope.info = {}
 				   	}, function(error) {
 							console.log(error);
@@ -104,12 +129,15 @@
 							data: {requestId:$scope.denyRequestId, message:$scope.info.message}
 					}).then(function(response) {
               $('#denyRequest').modal('hide');
-							$scope.showlist();
 							$scope.info = {}
 				   	}, function(error) {
 							console.log(error);
 					});
-				}        
+				}
+        
+        function sortByOrder($a, $b) {
+          return $a['timestamp'] - $b['timestamp']
+        }
 
 				$scope.showlist();
 		})
@@ -121,6 +149,7 @@
     <div class="header clearfix">
       <nav>
         <ul class="nav nav-pills pull-right">
+          <img src="static/images/scalr-logo.png" width="50" height="50">
         </ul>
       </nav>
       <h3 class="text-muted">Application Deployment Approval</h3>
@@ -146,7 +175,7 @@
           </thead>
           <tbody>
             <tr ng-repeat="item in pending track by $index">
-              <th scope="row">{{'{{item.requestId}}'}}</th>
+              <th scope="row">{{'{{item.requestId}}'}}</th>                            
 			        <td>{{ '{{item.user}}' }}</td>
 			        <td>{{ '{{item.scalrFarm}}' }}</td>
 			        <td>{{ '{{item.businessUnit}}' }}</td>
@@ -160,7 +189,21 @@
         </table>
       </div>
     </div>
+    <style>
+      .animate-show {
+        -webkit-transition: all linear 0.5s;
+        transition: all linear 0.5s;
+        opacity: 1;
+      }
 
+      .animate-show.ng-hide-add,
+      .animate-show.ng-hide-remove {
+        display: inline-block !important;
+      }
+      .animate-show.ng-hide {
+        opacity: 0;
+      }
+    </style>
 
     <div class="bs-example" data-example-id="panel-without-body-with-table">
       <div class="panel panel-default">
@@ -180,13 +223,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="item in approved track by $index">
-              <th scope="row">{{'{{item.requestId}}'}}</th>
+            <tr ng-repeat="item in approved | limitTo:limit" title="Approval Message: {{'{{item.message}}'}}">
+              <th scope="row">{{'{{item.requestId}}'}}</span></th>
 			        <td>{{ '{{item.user}}' }}</td>
 			        <td>{{ '{{item.scalrFarm}}' }}</td>
 			        <td>{{ '{{item.businessUnit}}' }}</td>
 			        <td>{{ '{{item.costCenter}}' }}</td>
-			        <td>{{ '{{item.project}}' }}</td>
+              <td>{{ '{{item.project}}' }}</td>
             </tr>
           </tbody>
         </table>
@@ -210,8 +253,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="item in denied track by $index">
-              <th scope="row">{{'{{item.requestId}}'}}</th>
+            <tr ng-repeat="item in denied | limitTo:limit" title="Deny Message: {{'{{item.message}}'}}">
+              <th scope="row">{{'{{item.requestId}}'}}</th>              
               <td>{{ '{{item.user}}' }}</td>
               <td>{{ '{{item.scalrFarm}}' }}</td>
               <td>{{ '{{item.businessUnit}}' }}</td>
@@ -270,9 +313,6 @@
         </div>
     </div>
   </div>
-
-  <script src="static/js/jquery.min.js"></script>
-  <script src="static/js/bootstrap.min.js"></script>
 </body>
 </html>
 

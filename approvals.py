@@ -6,7 +6,7 @@ from flask import Flask
 from flask import request
 from flask import Response
 from flask import render_template
-#import time
+import time
 import datetime
 import requests
 import pusher
@@ -14,10 +14,10 @@ import pusher
 signing_key = '<SCALR_ENDPOINT_KEY>'
 app = Flask(__name__)
 pusher_client = pusher.Pusher(
-  app_id='<PUSHER_APP_ID',
-  key='PUSHER_KEY',
+  app_id='<PUSHER_APP_ID>',
+  key='<PUSHER_KEY>',
   secret='PUSHER_SECRET',
-  cluster='mt1',
+  cluster='<PUSHER_CLUSTER>',
   ssl=True
 )
 
@@ -39,17 +39,25 @@ def getDenied():
 
 @app.route('/approveRequest', methods=['POST'])
 def approveRequest():
-	return processRequest('Approved', request.get_json()['requestId'], request.get_json()['message'])
+	if 'message' in request.get_json():
+		return processRequest('Approved', request.get_json()['requestId'], request.get_json()['message'])
+	else:
+		return processRequest('Approved', request.get_json()['requestId'], '')
 
 @app.route('/denyRequest', methods=['POST'])
 def denyRequest():
-	return processRequest('Denied', request.get_json()['requestId'], request.get_json()['message'])
+	if 'message' in request.get_json():
+		return processRequest('Denied', request.get_json()['requestId'], request.get_json()['message'])
+	else:
+		return processRequest('Denied', request.get_json()['requestId'], '')
 
 @app.route('/approve', methods=['GET', 'POST'])
 def approve():
 	if request.method == 'POST':
 		r = redis.Redis()
 		data = request.get_json()
+		respdata = {'approval_status': 'pending'}		
+		timestamp, signature = sign(respdata)		
 		requestId = data['requestId']
 		r.sadd('requestId', requestId)
 		requestData = { }
@@ -60,9 +68,8 @@ def approve():
 		requestData['project'] = data['data']['SCALR_PROJECT_NAME']
 		requestData['status'] = 'Pending'
 		requestData['scalrHost'] = request.remote_addr
+		requestData['timestamp'] = time.mktime(datetime.datetime.strptime(timestamp[:-4], '%a %d %b %Y %H:%M:%S').timetuple())
 		r.hmset(requestId, requestData)
-		respdata = {'approval_status': 'pending'}
-		timestamp, signature = sign(respdata)
 		response = Response(response=json.dumps(respdata), status=202)
 		response.headers['Date'] = timestamp
 		response.headers['X-Signature'] = signature
@@ -90,8 +97,11 @@ def getRequest(status):
 					'scalrFarm': r.hmget(item, 'scalrFarm')[0].decode('UTF-8'),
 					'businessUnit': r.hmget(item, 'scalrAccount')[0].decode('UTF-8'),
 					'costCenter': r.hmget(item, 'costCenter')[0].decode('UTF-8'),
-					'project': r.hmget(item, 'project')[0].decode('UTF-8')
+					'project': r.hmget(item, 'project')[0].decode('UTF-8'),
+					'timestamp': r.hmget(item, 'timestamp')[0].decode('UTF-8')
 					}
+				if r.hexists(item, 'message'):
+					requestItem['message'] = r.hmget(item, 'message')[0].decode('UTF-8')
 				requestList.append(requestItem)
 	return requestList
 
@@ -102,6 +112,8 @@ def processRequest(status, requestId, message):
 	headers = {'Content-Type': 'application/json', 'Date': timestamp, 'X-Signature': signature}
 	response = requests.post('https://' + r.hmget(requestId, 'scalrHost')[0].decode('UTF-8') + '/integration-hub/callback/' + requestId, json=data, headers=headers, verify=False)
 	r.hset(requestId, 'status', status)
+	r.hset(requestId, 'message', message)
+	r.hset(requestId, 'timestamp', time.mktime(datetime.datetime.strptime(timestamp[:-4], '%a %d %b %Y %H:%M:%S').timetuple()))
 	pusher_client.trigger('live-approve', 'redis-update', {'message': 'Data changed'})
 
 	return status		
