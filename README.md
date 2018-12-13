@@ -10,7 +10,8 @@ flask
 redis
 hmac
 requests
-pusher    *OPTIONAL*
 ```
+`pusher`    *OPTIONAL*
+
 
 
