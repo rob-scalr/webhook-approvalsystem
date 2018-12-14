@@ -23,17 +23,17 @@
 	  .controller('HomeCtrl', function($scope, $http) {
 				$scope.info = {};
         $scope.limit = 7;
-        Pusher.logToConsole = true;
+//        Pusher.logToConsole = true;
 
-		var pusher = new Pusher('<PUSHER_SECRET>', {
-          cluster: '<PUSHER_CLUSTER>',
-          forceTLS: true
-        });
+//		var pusher = new Pusher('<PUSHER_SECRET>', {
+//          cluster: '<PUSHER_CLUSTER>',
+//          forceTLS: true
+//        });
 
-        var channel = pusher.subscribe('live-approve');
-        channel.bind('redis-update', function() {
-          $scope.showlist();
-        });
+//        var channel = pusher.subscribe('live-approve');
+//        channel.bind('redis-update', function() {
+//          $scope.showlist();
+//        });
 
         $scope.hoverIn = function(requestId, element){
           $scope.approveRequestId = requestId

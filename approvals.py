@@ -13,13 +13,13 @@ import pusher
 
 signing_key = '<SCALR_ENDPOINT_KEY>'
 app = Flask(__name__)
-pusher_client = pusher.Pusher(
-  app_id='<PUSHER_APP_ID>',
-  key='<PUSHER_KEY>',
-  secret='PUSHER_SECRET',
-  cluster='<PUSHER_CLUSTER>',
-  ssl=True
-)
+#pusher_client = pusher.Pusher(
+#  app_id='<PUSHER_APP_ID>',
+#  key='<PUSHER_KEY>',
+#  secret='<PUSHER_SECRET>',
+#  cluster='<PUSHER_CLUSTER>',
+#  ssl=True
+#)
 
 @app.route('/')
 def mainfunc():
@@ -73,7 +73,7 @@ def approve():
 		response = Response(response=json.dumps(respdata), status=202)
 		response.headers['Date'] = timestamp
 		response.headers['X-Signature'] = signature
-		pusher_client.trigger('live-approve', 'redis-update', {'message': 'Data changed'})			
+#		pusher_client.trigger('live-approve', 'redis-update', {'message': 'Data changed'})			
 		return response 
 
 def sign(data):
@@ -114,6 +114,6 @@ def processRequest(status, requestId, message):
 	r.hset(requestId, 'status', status)
 	r.hset(requestId, 'message', message)
 	r.hset(requestId, 'timestamp', time.mktime(datetime.datetime.strptime(timestamp[:-4], '%a %d %b %Y %H:%M:%S').timetuple()))
-	pusher_client.trigger('live-approve', 'redis-update', {'message': 'Data changed'})
+#	pusher_client.trigger('live-approve', 'redis-update', {'message': 'Data changed'})
 
 	return status		
