@@ -12,6 +12,7 @@ redis-server
 ```
 
 ##### Python Modules:
+
 ```
 flask
 redis
@@ -60,6 +61,7 @@ Line 26-36
    // channel.bind('redis-update', function() {
    //   $scope.showlist();
    // });
+```
 
 Once the appropriate code has been uncommented, it is necessary to copy the appropriate data from the Pusher app you created.  Update the variables with `<PUSHER_APP_ID>`, `<PUSHER_KEY>`, `<PUSHER_SECRET>`, and `<PUSHER_CLUSTER>` in both the `approvals.py` and the `templates/list.html` files.
 
